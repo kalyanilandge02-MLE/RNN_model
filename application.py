@@ -16,6 +16,11 @@ MODEL_DIR = "model"
 MODEL_PATH = os.path.join(MODEL_DIR, "rnn_saved_model")
 MODEL_URL = "https://kalyanimlmodels.blob.core.windows.net/mlmodels/rnn_saved_model.zip?sp=r&st=2026-01-15T18:13:09Z&se=2026-01-16T02:28:09Z&spr=https&sv=2024-11-04&sr=b&sig=zJFOMU4tgiWrRW64Ck1Q8wlnHxARnMa8GIR6DZ93zfY%3D"
 
+# Azure Blob Storage configuration for tokenizer
+TOKENIZER_BLOB_NAME = "tokenizer.pickle"
+TOKENIZER_PATH = os.path.join(MODEL_DIR, TOKENIZER_BLOB_NAME)
+TOKENIZER_URL = "https://kalyanimlmodels.blob.core.windows.net/mlmodels/tokenizer.pickle?sp=r&st=2026-01-15T18:48:07Z&se=2026-01-16T03:03:07Z&spr=https&sv=2024-11-04&sr=b&sig=X9PPygbB6TgCB9sBzHUvvaTuc8WojP2gFVrDyznr954%3D"
+
 # Ensure the local model directory exists
 os.makedirs(MODEL_DIR, exist_ok=True)
 
@@ -40,6 +45,22 @@ def download_model():
 
     print("✅ SavedModel extracted")
 
+# Download the tokenizer from Azure Blob Storage
+def download_tokenizer():
+    if os.path.exists(TOKENIZER_PATH):
+        print("✅ Tokenizer already exists — skipping download")
+        return
+
+    r = requests.get(TOKENIZER_URL, stream=True, timeout=120)
+    r.raise_for_status()
+
+    with open(TOKENIZER_PATH, "wb") as f:
+        for chunk in r.iter_content(1024 * 1024):
+            if chunk:
+                f.write(chunk)
+
+    print("✅ Tokenizer downloaded successfully")
+
 # Lazy model loader (loads only once)
 model = None
 
@@ -56,12 +77,15 @@ def get_model():
 
     return model
 
-# Replace the existing model loading logic with the new one
-model = get_model()
+# Ensure tokenizer is downloaded
+download_tokenizer()
 
 # Load the tokenizer
-with open('tokenizer.pickle','rb') as handle:
+with open(TOKENIZER_PATH, 'rb') as handle:
     tokenizer = pickle.load(handle)
+
+# Replace the existing model loading logic with the new one
+model = get_model()
 
 # Function to predict the next word
 def predict_next_word(model,tokenizer,text,max_sequence_len):

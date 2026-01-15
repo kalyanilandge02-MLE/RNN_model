@@ -1,4 +1,3 @@
 model
 rnn_saved_model
 tea_env
-tokenizer.pickle
