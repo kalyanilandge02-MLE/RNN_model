@@ -1,1 +1,1 @@
-web: streamlit run application.py --server.port $PORT --server.address 0.0.0.0
+web: waitress-serve --port=$PORT application:app

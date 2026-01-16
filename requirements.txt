@@ -8,3 +8,6 @@ scikeras
 nltk
 azure-storage-blob
 requests
+flask
+gunicorn
+waitress
