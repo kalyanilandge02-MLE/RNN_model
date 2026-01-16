@@ -6,6 +6,8 @@ import tensorflow as tf
 from tensorflow.keras.preprocessing.sequence import pad_sequences
 import requests
 import zipfile
+import logging
+from requests.exceptions import HTTPError
 
 # --------------------------------------------------
 # Flask App
@@ -20,8 +22,8 @@ MODEL_PATH = os.path.join(MODEL_DIR, "rnn_saved_model")
 TOKENIZER_PATH = os.path.join(MODEL_DIR, "tokenizer.pickle")
 
 # Model URL and Tokenizer URL
-MODEL_URL = "https://kalyanimlmodels.blob.core.windows.net/mlmodels/rnn_saved_model.zip?sp=r&st=2026-01-15T18:13:09Z&se=2026-01-16T02:28:09Z&spr=https&sv=2024-11-04&sr=b&sig=zJFOMU4tgiWrRW64Ck1Q8wlnHxARnMa8GIR6DZ93zfY%3D"
-TOKENIZER_URL = "https://kalyanimlmodels.blob.core.windows.net/mlmodels/tokenizer.pickle?sp=r&st=2026-01-15T18:48:07Z&se=2026-01-16T03:03:07Z&spr=https&sv=2024-11-04&sr=b&sig=X9PPygbB6TgCB9sBzHUvvaTuc8WojP2gFVrDyznr954%3D"
+MODEL_URL = "https://kalyanimlmodels.blob.core.windows.net/mlmodels/rnn_saved_model.zip?sp=r&st=2026-01-16T04:14:13Z&se=2026-01-30T12:29:13Z&spr=https&sv=2024-11-04&sr=b&sig=6JMr7HLHeF0Dr8Ys3CxR8QaGibk6crWDXo81tTRVJBA%3D"
+TOKENIZER_URL = "https://kalyanimlmodels.blob.core.windows.net/mlmodels/tokenizer.pickle?sp=r&st=2026-01-16T04:14:59Z&se=2026-01-30T12:29:59Z&spr=https&sv=2024-11-04&sr=b&sig=k8AbMffWhSuabtndeM2D55Inw0hzRzp6BMo5c3vwnzQ%3D"
 
 # Ensure the model directory exists
 os.makedirs(MODEL_DIR, exist_ok=True)
@@ -30,15 +32,32 @@ os.makedirs(MODEL_DIR, exist_ok=True)
 # Download Model and Tokenizer
 # --------------------------------------------------
 def download_model():
+    if os.path.exists(MODEL_PATH):
+        print("✅ Model already exists — skipping download")
+        return
+
     zip_path = os.path.join(MODEL_DIR, "model.zip")
-    r = requests.get(MODEL_URL, stream=True, timeout=120)
-    r.raise_for_status()
-    with open(zip_path, "wb") as f:
-        for chunk in r.iter_content(1024 * 1024):
-            if chunk:
-                f.write(chunk)
-    with zipfile.ZipFile(zip_path, "r") as zip_ref:
-        zip_ref.extractall(MODEL_DIR)
+
+    try:
+        r = requests.get(MODEL_URL, stream=True, timeout=120)
+        r.raise_for_status()
+
+        with open(zip_path, "wb") as f:
+            for chunk in r.iter_content(1024 * 1024):
+                if chunk:
+                    f.write(chunk)
+
+        with zipfile.ZipFile(zip_path, "r") as zip_ref:
+            zip_ref.extractall(MODEL_DIR)
+
+        print("✅ SavedModel extracted")
+
+    except HTTPError as http_err:
+        logging.error(f"HTTP error occurred while downloading the model: {http_err}")
+        raise
+    except Exception as err:
+        logging.error(f"An error occurred while downloading the model: {err}")
+        raise
 
 def download_tokenizer():
     r = requests.get(TOKENIZER_URL, stream=True, timeout=120)
